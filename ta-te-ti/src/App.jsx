@@ -1,30 +1,30 @@
-
-import { useState } from "react"
-import confetti from "canvas-confetti"
-import Square from "./components/Square"
-import {turns} from "./constants.js"
-import WinnerModal from "./components/WinnerModal.jsx"
-import { checkWinnerFrom, checkEndGame } from "./logic/board.js"
+import { useEffect, useState } from 'react'
+import confetti from 'canvas-confetti'
+import Square from './components/Square'
+import { turns } from './constants.js'
+import WinnerModal from './components/WinnerModal.jsx'
+import { checkWinnerFrom, checkEndGame } from './logic/board.js'
+import { resetGameStorage, saveGameToStorage } from './logic/storage/index.js'
 
 function App() {
-  const [board, setBoard] = useState( () => {
+  const [board, setBoard] = useState(() => {
     const boardFromStorage = window.localStorage.getItem('board')
     if (boardFromStorage) {
       return JSON.parse(boardFromStorage)
-    }else{
+    } else {
       return Array(9).fill(null)
     }
-  }
-  ) 
-  const [turn, setTurn] = useState( () => {
+  })
+
+  const [turn, setTurn] = useState(() => {
     const turnFromStorage = window.localStorage.getItem('turn')
     if (turnFromStorage) {
       return turnFromStorage
-    }else{
+    } else {
       return turns.x
     }
   })
-  
+
   //Null es que no hay un ganador, false es que hay empate
   const [winner, setWinner] = useState(null)
 
@@ -33,32 +33,27 @@ function App() {
     setTurn(turns.x)
     setWinner(null)
 
-    window.localStorage.removeItem('board')
-    window.localStorage.removeItem('turn')
+    resetGameStorage()
   }
-  
+
   const updateBoard = (index) => {
-    //Si ya tiene un valor no actualizamos nada
+    //Si ya tiene un valor en esa posición no actualizamos nada
     if (board[index] || winner) {
       return
-    } 
+    }
 
     //Actualizar tablero
     const newBoard = [...board]
     newBoard[index] = turn
     setBoard(newBoard)
-    
+
     //Actualizar turno
     const newTurn = turn === turns.x ? turns.o : turns.x
     setTurn(newTurn)
 
-    //Guardar partida
-    window.localStorage.setItem('board',JSON.stringify(newBoard))
-    window.localStorage.setItem('turn',newTurn)
-
     //Revisar si hay ganador
     const newWinner = checkWinnerFrom(newBoard)
-    if (newWinner){
+    if (newWinner) {
       confetti()
       setWinner(newWinner)
     } else if (checkEndGame(newBoard)) {
@@ -66,38 +61,32 @@ function App() {
     }
   }
 
+  //Guardamos el juego en el local storage
+  useEffect(() => {
+    saveGameToStorage(board, turn)
+  }, [board, turn])
+
   return (
-    <main className='board'> 
+    <main className='board'>
       <h1>Ta Te Ti</h1>
       <button onClick={resetGame}>Empezar de nuevo</button>
       <section className='game'>
-        {
-          board.map((square,index) => {
-            return(
-              <Square
-                key={index}
-                index={index}
-                updateBoard={updateBoard}
-              >
-                {square}
-              </Square>
-            )
-          })
-        }
+        {board.map((square, index) => {
+          return (
+            <Square key={index} index={index} updateBoard={updateBoard}>
+              {square}
+            </Square>
+          )
+        })}
       </section>
-      <section className="turn">
+      <section className='turn'>
         <h2>El turno es de:</h2>
-        <div className="container">
-          <Square isSelected={turn === turns.x}>
-            {turns.x}
-          </Square>
-          <Square isSelected={turn === turns.o}>
-            {turns.o}
-          </Square>      
+        <div className='container'>
+          <Square isSelected={turn === turns.x}>{turns.x}</Square>
+          <Square isSelected={turn === turns.o}>{turns.o}</Square>
         </div>
       </section>
       <WinnerModal resetGame={resetGame} winner={winner} />
-      
     </main>
   )
 }
